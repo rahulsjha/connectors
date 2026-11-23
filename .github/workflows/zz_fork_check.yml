@@ -1,0 +1,24 @@
+name: fork-check-10656
+on:
+  push:
+    branches: [ci/10656]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Install upstream modules
+        run: mvn -B -ntp -pl connector-runtime/connector-runtime-core -am install -DskipTests -Djacoco.skip=true -Dspotless.check.skip=true
+      - name: Spotless check
+        run: mvn -B -ntp -pl connector-runtime/connector-runtime-core spotless:check
+      - name: Test connector-runtime-core
+        run: set -o pipefail; mvn -B -ntp -pl connector-runtime/connector-runtime-core test -Djacoco.skip=true 2>&1 | tee test.log
+      - name: Summary
+        if: always()
+        run: grep -E "Tests run:|BUILD|ERROR" test.log | tail -40
